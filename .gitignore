@@ -1,6 +1,7 @@
-/cbir
-/images
-/test
-/weights
+cbir/
+images/
+test/
+weights/
+__pycache__/
 
 pg.ipynb
