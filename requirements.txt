@@ -1,1 +1,16 @@
-
+roboflow
+supervision
+qdrant-client
+gradio
+ultralytics
+torch>=1.13.1
+torchvision>=0.14.1
+numpy
+pandas
+opencv-python
+Pillow
+matplotlib
+transformers
+git+https://github.com/openai/clip
+git+https://github.com/compphoto/Intrinsic/archive/main.zip
+git+https://github.com/CCareaga/chrislib.git
