@@ -1,7 +1,7 @@
 cbir/
 images/
+results/
 test/
 weights/
-tmp/
 
 pg.ipynb

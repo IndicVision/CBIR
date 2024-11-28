@@ -9,7 +9,7 @@ def segment_and_correct_painting(query_image_path, segmentation_model, confidenc
     '''
     query_img = cv2.imread(query_image_path)
     img_name = Path(query_image_path).stem
-    results = segmentation_model(query_img)
+    results = segmentation_model(query_img, verbose=False)
 
     obj = results[0]
 

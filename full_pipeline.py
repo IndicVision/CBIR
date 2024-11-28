@@ -14,79 +14,81 @@ from embedding import get_image_embedding
 from rerank import find_caption_for_query_image, rerank_images_by_caption
 from segment import segment_and_correct_painting
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+class ImageRetrievalPipeline:
+    def __init__(self):
+        self._init_models()
+        self._init_client()
+        self.IMAGES_DIR = "images/"
+        
+    def _init_models(self):
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.segmentation_model = YOLO("weights/YOLO-11-SEG-EPOCH200.pt")
+        self.intrinsic_model = load_models("v2")
+        self.embedding_processor = AutoImageProcessor.from_pretrained('facebook/dinov2-base')
+        self.embedding_model = Dinov2Model.from_pretrained('facebook/dinov2-base', attn_implementation = "eager").to(self.device)
+        
+        self.rerank_model, self.rerank_preprocess = clip.load("ViT-B/32", device=self.device, jit=False)
+        self.rerank_model.load_state_dict(torch.load("weights/CLIP.pth"))
 
-segmentation_model = YOLO("weights/YOLO-11-SEG-EPOCH200.pt")
-intrinsic_model = load_models("v2")
-embedding_processor = AutoImageProcessor.from_pretrained('facebook/dinov2-base')
-embedding_model = Dinov2Model.from_pretrained('facebook/dinov2-base', attn_implementation = "eager").to(device)
-
-rerank_model, rerank_preprocess = clip.load("ViT-B/32", device=device, jit=False)
-rerank_model.load_state_dict(torch.load("weights/CLIP.pth"))
-rerank_model.to(device)
-
-QDRANT_DB_URL = os.getenv('QDRANT_DB_URL')
-QDRANT_API_KEY = os.getenv('QDRANT_API_KEY')
-client = QdrantClient(url=QDRANT_DB_URL, api_key=QDRANT_API_KEY)
-collection_name = "Dinov2-albedo"
-top_k=5
-
-IMAGES_DIR = "images/"
-
-def main(query_image_path):
-    """
-    Main image retrieval pipeline
-    """
-    segmented_image = segment_and_correct_painting(query_image_path, segmentation_model)
-    if segmented_image is None:
-        return "No painting detected or segmentation failed.", None, None
-
-    segmented_image_path = "tmp/segmented_image.jpg"
-    Image.fromarray(segmented_image).save(segmented_image_path)
-    caption = find_caption_for_query_image(
-        segmented_image_path,
-        rerank_model,
-        rerank_preprocess,
-        device
-    )
+    def _init_client(self):
+        self.client = QdrantClient(
+            url=os.getenv('QDRANT_DB_URL'),
+            api_key=os.getenv('QDRANT_API_KEY')
+        )
+        self.collection_name = "Dinov2-albedo"
     
-    albedo_image_path = generate_albedo_image(
-        segmented_image_path, 
-        intrinsic_model, 
-        device
-    )
-    albedo_embedding = get_image_embedding(
-        albedo_image_path, 
-        embedding_processor, 
-        embedding_model, 
-        device
-    )
-    
-    search_results = client.search(
-        collection_name=collection_name,
-        query_vector=albedo_embedding.tolist(),
-        limit=top_k
-    )
-    
-    similarity_threshold = 0.8
-    similar_image_paths = []
-    for result in search_results:
-        similarity_score = result.score
-        if similarity_score >= similarity_threshold:
-            filename = result.payload["painting_name"]
-            image_path = IMAGES_DIR+filename
-            if os.path.exists(image_path):
-                similar_image_paths.append(image_path)
-                
-    if not similar_image_paths:
-        return "Image not in database. Similarity less than 0.8", None, None
-    
-    reranked_images = rerank_images_by_caption(
-        similar_image_paths,
-        caption,
-        rerank_model,
-        rerank_preprocess,
-        device,
-    )
+    def retrieve_image(self, query_image_path):
+        segmented_image = segment_and_correct_painting(query_image_path, self.segmentation_model)
+        if segmented_image is None:
+            return "No painting detected or segmentation failed.", None, None
+        if not os.path.exists("results"):
+            os.makedirs("results")
+        self.segmented_image_path = "results/segmented_image.jpg"
+        Image.fromarray(segmented_image).save(self.segmented_image_path)
+        caption = find_caption_for_query_image(
+            self.segmented_image_path,
+            self.rerank_model,
+            self.rerank_preprocess,
+            self.device,
+        )
+        
+        self.albedo_image_path = generate_albedo_image(
+            self.segmented_image_path,
+            self.intrinsic_model,
+            self.device
+        )
+        self.albedo_embedding = get_image_embedding(
+            self.albedo_image_path,
+            self.embedding_processor,
+            self.embedding_model,
+            self.device
+        )
+        
+        search_results = self.client.search(
+            collection_name=self.collection_name,
+            query_vector=self.albedo_embedding.tolist(),
+            limit=5
+        )
+        
+        similarity_threshold = 0.8
+        self.similar_image_paths = []
+        for result in search_results:
+            similarity_score = result.score
+            if similarity_score >= similarity_threshold:
+                filename = result.payload["painting_name"]
+                image_path = self.IMAGES_DIR+filename
+                if os.path.exists(image_path):
+                    self.similar_image_paths.append(image_path)
+        
+        if not self.similar_image_paths:
+            return "Image not in database. Similarity less than 0.8", None, None
 
-    return segmented_image_path, albedo_image_path, reranked_images
+        reranked_images = rerank_images_by_caption(
+            self.similar_image_paths,
+            caption,
+            self.rerank_model,
+            self.rerank_preprocess,
+            self.device,
+        )
+        
+        return caption, self.albedo_image_path, reranked_images        
