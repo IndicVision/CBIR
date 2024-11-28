@@ -14,9 +14,9 @@ from embedding import get_image_embedding
 from rerank import find_caption_for_query_image, rerank_images_by_caption
 from segment import segment_and_correct_painting
 
-device = "cuda" if torch.cuda.isavailable() else "cpu"
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
-segmentation_model = YOLO("weights/weights/YOLO-11-SEG-EPOCH200.pt")
+segmentation_model = YOLO("weights/YOLO-11-SEG-EPOCH200.pt")
 intrinsic_model = load_models("v2")
 embedding_processor = AutoImageProcessor.from_pretrained('facebook/dinov2-base')
 embedding_model = Dinov2Model.from_pretrained('facebook/dinov2-base', attn_implementation = "eager").to(device)
@@ -31,19 +31,24 @@ client = QdrantClient(url=QDRANT_DB_URL, api_key=QDRANT_API_KEY)
 collection_name = "Dinov2-albedo"
 top_k=5
 
-IMAGES_DIR = "/content/drive/MyDrive/Varsha/Datasets for training/Paints/Asign/"
+IMAGES_DIR = "images/"
 
 def main(query_image_path):
     """
     Main image retrieval pipeline
     """
     segmented_image = segment_and_correct_painting(query_image_path, segmentation_model)
-    if not segmented_image:
+    if segmented_image is None:
         return "No painting detected or segmentation failed.", None, None
 
-    segmented_image_path = "/tmp/segmented_image.jpg"
+    segmented_image_path = "tmp/segmented_image.jpg"
     Image.fromarray(segmented_image).save(segmented_image_path)
-    caption = find_caption_for_query_image(segmented_image_path)
+    caption = find_caption_for_query_image(
+        segmented_image_path,
+        rerank_model,
+        rerank_preprocess,
+        device
+    )
     
     albedo_image_path = generate_albedo_image(
         segmented_image_path, 

@@ -66,9 +66,9 @@ def segment_and_correct_painting(query_image_path, segmentation_model, confidenc
 
         corrected_image = cv2.warpPerspective(query_img, M, (width, height), flags=cv2.INTER_LINEAR)
 
-        corrected_image_path = f"{img_name}_homography_corrected.jpg"
-        cv2.imwrite(corrected_image_path, corrected_image)
-        print(f"Corrected painting image saved as: {corrected_image_path}")
+        # corrected_image_path = f"{img_name}_homography_corrected.jpg"
+        # cv2.imwrite(corrected_image_path, corrected_image)
+        # print(f"Corrected painting image saved as: {corrected_image_path}")
 
         corrected_image_rgb = cv2.cvtColor(corrected_image, cv2.COLOR_BGR2RGB)
         return corrected_image_rgb
