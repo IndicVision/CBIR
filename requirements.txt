@@ -1,16 +1,15 @@
-roboflow
-supervision
-qdrant-client
-gradio
-ultralytics
-torch>=1.13.1
-torchvision>=0.14.1
-numpy
-pandas
-opencv-python
-Pillow
-matplotlib
-transformers
-git+https://github.com/openai/clip
-git+https://github.com/compphoto/Intrinsic/archive/main.zip
-git+https://github.com/CCareaga/chrislib.git
+roboflow==1.1.49
+supervision==0.25.0
+qdrant-client==1.12.1
+ultralytics==8.3.38
+torch==2.5.1
+torchvision==0.20.1
+numpy==2.1.3
+pandas==2.2.3
+opencv-python-headless==4.10.0.84
+pillow==11.0.0
+matplotlib==3.9.2
+transformers==4.46.3
+chrislib @ git+https://github.com/CCareaga/chrislib@cf818e04e16495e0228d0a418733280538a5857b
+clip @ git+https://github.com/openai/clip@dcba3cb2e2827b402d2701e7e1c7d9fed8a20ef1
+intrinsic @ git+https://github.com/compphoto/Intrinsic.git@4e8a2022a72ce86f2b4807daaf31cab12e39d2bb
