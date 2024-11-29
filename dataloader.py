@@ -39,8 +39,8 @@ def insert_embeddings_into_qdrant(image_folder, artist_df, collection_name):
 
         embedding = get_image_embedding(image_path)
 
-        # artist_name = artist_df.loc[artist_df['Image Name'] == filename, 'Artist Name'].values
-        # artist_name = artist_name[0] if len(artist_name) > 0 else "Unknown Artist"
+        artist_name = artist_df.loc[artist_df['Image Name'] == filename, 'Artist Name'].values
+        artist_name = artist_name[0] if len(artist_name) > 0 else "Unknown Artist"
 
         payload = {
             'painting_name': filename,
