@@ -4,4 +4,4 @@ results/
 test/
 weights/
 
-pg.ipynb
+*.ipynb
