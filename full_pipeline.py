@@ -40,7 +40,8 @@ class ImageRetrievalPipeline:
     def segment_image(self, image_path):
         segmented_image = segment_and_correct_painting(image_path, self.segmentation_model)
         if segmented_image is None:
-            return "No painting detected or segmentation failed.", None, None
+            print("No painting detected or segmentation failed.")
+            return None, None
         if not os.path.exists("results"):
             os.makedirs("results")
         self.segmented_image_path = "results/segmented_image.jpg"
@@ -68,10 +69,11 @@ class ImageRetrievalPipeline:
         return albedo_image, albedo_embedding
     
     def retrieve_image(self, query_image_path):
-        
-        segmented_image, caption = self.segment_image(query_image_path) 
+        segmented_image, caption = self.segment_image(query_image_path)
+        if segmented_image is None:
+            return None, None, None
         albedo_image, self.albedo_embedding = self.intrinsic_image(self.segmented_image_path)
-
+            
         search_results = self.client.search(
             collection_name=self.collection_name,
             query_vector=self.albedo_embedding.tolist(),
