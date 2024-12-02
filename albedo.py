@@ -17,11 +17,11 @@ def generate_albedo_image(
     img = load_image(query_image_path)
     result = run_pipeline(intrinsic_model, img, device=device)
 
-    albedo = view(result['hr_alb'])
+    albedo = view(result['gry_alb'])
     albedo_image = Image.fromarray((albedo * 255).astype('uint8'))
 
     filename = os.path.basename(query_image_path).split('.')[0]
     albedo_image_path = f"results/{filename}_albedo.jpg"
     albedo_image.save(albedo_image_path)
 
-    return albedo_image_path
+    return albedo_image, albedo_image_path

@@ -36,9 +36,9 @@ class ImageRetrievalPipeline:
             api_key=os.getenv('QDRANT_API_KEY')
         )
         self.collection_name = "Dinov2-albedo"
-    
-    def retrieve_image(self, query_image_path):
-        segmented_image = segment_and_correct_painting(query_image_path, self.segmentation_model)
+        
+    def segment_image(self, image_path):
+        segmented_image = segment_and_correct_painting(image_path, self.segmentation_model)
         if segmented_image is None:
             return "No painting detected or segmentation failed.", None, None
         if not os.path.exists("results"):
@@ -51,19 +51,27 @@ class ImageRetrievalPipeline:
             self.rerank_preprocess,
             self.device,
         )
+        return segmented_image, caption
         
-        self.albedo_image_path = generate_albedo_image(
-            self.segmented_image_path,
+    def intrinsic_image(self, image_path):
+        albedo_image, self.albedo_image_path = generate_albedo_image(
+            image_path,
             self.intrinsic_model,
             self.device
         )
-        self.albedo_embedding = get_image_embedding(
+        albedo_embedding = get_image_embedding(
             self.albedo_image_path,
             self.embedding_processor,
             self.embedding_model,
             self.device
         )
+        return albedo_image, albedo_embedding
+    
+    def retrieve_image(self, query_image_path):
         
+        segmented_image, caption = self.segment_image(query_image_path) 
+        albedo_image, self.albedo_embedding = self.intrinsic_image(self.segmented_image_path)
+
         search_results = self.client.search(
             collection_name=self.collection_name,
             query_vector=self.albedo_embedding.tolist(),
