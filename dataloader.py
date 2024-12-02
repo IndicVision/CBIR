@@ -30,9 +30,24 @@ def get_image_embedding(image_path):
         return embedding
 
 def insert_embeddings_into_qdrant(image_folder, artist_df, collection_name):
+    try:
+        _ = client.get_collection(collection_name)
+        print(f"Collection '{collection_name}' exists.")
+    except Exception:
+        print(f"Creating new collection '{collection_name}'...")
+
+        client.create_collection(
+            collection_name=collection_name,
+            vectors_config=VectorParams(
+                size=768,
+                distance=models.Distance.COSINE
+            )
+        )
+        print(f"Collection '{collection_name}' created successfully.")
+    
     filenames = os.listdir(image_folder)
-    id_counter = 1
     client = init_client()
+    id_counter = 1
 
     for filename in filenames:
         image_path = os.path.join(image_folder, filename)
