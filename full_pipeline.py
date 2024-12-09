@@ -15,7 +15,8 @@ from rerank import find_caption_for_query_image, rerank_images_by_caption
 from segment import segment_and_correct_painting
 
 class ImageRetrievalPipeline:
-    def __init__(self):
+    def __init__(self, k=10):
+        self.k = k
         self._init_models()
         self._init_client()
         self.IMAGES_DIR = "images/"
@@ -55,31 +56,20 @@ class ImageRetrievalPipeline:
         return segmented_image, caption
         
     def intrinsic_image(self, image_path):
-        albedo_image, self.albedo_image_path = generate_albedo_image(
+        albedo_image = generate_albedo_image(
             image_path,
             self.intrinsic_model,
             self.device
         )
         albedo_embedding = get_image_embedding(
-            self.albedo_image_path,
+            albedo_image,
             self.embedding_processor,
             self.embedding_model,
             self.device
         )
         return albedo_image, albedo_embedding
     
-    def retrieve_image(self, query_image_path):
-        segmented_image, caption = self.segment_image(query_image_path)
-        if segmented_image is None:
-            return None, None, None
-        albedo_image, self.albedo_embedding = self.intrinsic_image(self.segmented_image_path)
-            
-        search_results = self.client.search(
-            collection_name=self.collection_name,
-            query_vector=self.albedo_embedding.tolist(),
-            limit=5
-        )
-        
+    def retrieve_similar(self, search_results):
         similarity_threshold = 0.8
         self.similar_image_paths = []
         for result in search_results:
@@ -90,15 +80,29 @@ class ImageRetrievalPipeline:
                 if os.path.exists(image_path):
                     self.similar_image_paths.append(image_path)
         
+    def retrieve_image(self, query_image_path):
+        self.segmented_image, self.caption = self.segment_image(query_image_path)
+        if self.segmented_image is None:
+            return None
+        
+        self.albedo_image, self.albedo_embedding = self.intrinsic_image(self.segmented_image_path)
+            
+        self.search_results = self.client.search(
+            collection_name=self.collection_name,
+            query_vector=self.albedo_embedding.tolist(),
+            limit=self.k,
+        )
+        self.retrieve_similar(self.search_results)
+        
         if not self.similar_image_paths:
-            return "Image not in database. Similarity less than 0.8", None, None
+            return "Image not in database. Similarity less than 0.8"
 
         reranked_images = rerank_images_by_caption(
             self.similar_image_paths,
-            caption,
+            self.caption,
             self.rerank_model,
             self.rerank_preprocess,
             self.device,
         )
         
-        return caption, self.albedo_image_path, reranked_images        
+        return reranked_images        
