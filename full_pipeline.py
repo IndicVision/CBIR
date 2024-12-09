@@ -68,18 +68,7 @@ class ImageRetrievalPipeline:
             self.device
         )
         return albedo_image, albedo_embedding
-    
-    def retrieve_similar(self, search_results):
-        similarity_threshold = 0.8
-        self.similar_image_paths = []
-        for result in search_results:
-            similarity_score = result.score
-            if similarity_score >= similarity_threshold:
-                filename = result.payload["painting_name"]
-                image_path = self.IMAGES_DIR+filename
-                if os.path.exists(image_path):
-                    self.similar_image_paths.append(image_path)
-        
+
     def retrieve_image(self, query_image_path):
         self.segmented_image, self.caption = self.segment_image(query_image_path)
         if self.segmented_image is None:
@@ -92,17 +81,14 @@ class ImageRetrievalPipeline:
             query_vector=self.albedo_embedding.tolist(),
             limit=self.k,
         )
-        self.retrieve_similar(self.search_results)
-        
+        self.similar_image_paths = [x.payload['painting_name'] for x in self.search_results if x.score >= 0.8]
         if not self.similar_image_paths:
             return "Image not in database. Similarity less than 0.8"
-
-        reranked_images = rerank_images_by_caption(
+        
+        return rerank_images_by_caption(
             self.similar_image_paths,
             self.caption,
             self.rerank_model,
             self.rerank_preprocess,
             self.device,
-        )
-        
-        return reranked_images        
+        )        
