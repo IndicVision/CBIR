@@ -8,7 +8,7 @@ def get_image_embedding(
         device
     ):
     """
-    image_path: path to the image
+    image: path to the image
     embedding_processor: transformers.AutoImageProcessor.from_pretrained('facebook/dinov2-base')
     embedding_model: transformers.Dinov2Model.from_pretrained('facebook/dinov2-base', attn_implementation = "eager").to(device)
     device: 'cuda' if torch.cuda.is_available() else 'cpu'
