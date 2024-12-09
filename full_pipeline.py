@@ -43,12 +43,10 @@ class ImageRetrievalPipeline:
         if segmented_image is None:
             print("No painting detected or segmentation failed.")
             return None, None
-        if not os.path.exists("results"):
-            os.makedirs("results")
-        self.segmented_image_path = "results/segmented_image.jpg"
-        Image.fromarray(segmented_image).save(self.segmented_image_path)
+
+        segmented_image_pil = Image.fromarray(segmented_image)
         caption = find_caption_for_query_image(
-            self.segmented_image_path,
+            segmented_image_pil,
             self.rerank_model,
             self.rerank_preprocess,
             self.device,
@@ -70,18 +68,18 @@ class ImageRetrievalPipeline:
         return albedo_image, albedo_embedding
 
     def retrieve_image(self, query_image_path):
-        self.segmented_image, self.caption = self.segment_image(query_image_path)
+        self.segmented_image, self.caption = self.segment_image(query_image_path) # returns cv2
         if self.segmented_image is None:
             return None
         
-        self.albedo_image, self.albedo_embedding = self.intrinsic_image(self.segmented_image_path)
+        self.albedo_image, self.albedo_embedding = self.intrinsic_image(self.segmented_image) # returns cv2
             
         self.search_results = self.client.search(
             collection_name=self.collection_name,
             query_vector=self.albedo_embedding.tolist(),
             limit=self.k,
         )
-        self.similar_image_paths = [x.payload['painting_name'] for x in self.search_results if x.score >= 0.8]
+        self.similar_image_paths = [self.IMAGES_DIR+x.payload['painting_name'] for x in self.search_results if x.score >= 0.8]
         if not self.similar_image_paths:
             return "Image not in database. Similarity less than 0.8"
         

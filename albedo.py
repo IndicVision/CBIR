@@ -5,19 +5,15 @@ from chrislib.data_util import load_image
 from chrislib.general import view
 
 def generate_albedo_image(
-        query_image_path, 
+        query_image, 
         intrinsic_model, 
         device
     ):
     """
-    query_image_path: path to the query image
+    query_image: cv2 image
     intrinsic_model: intrinsic.pipeline.load_models('v2')
     device: 'cuda' if torch.cuda.is_available() else 'cpu'
     """
-    img = load_image(query_image_path)
-    result = run_pipeline(intrinsic_model, img, device=device)
+    result = run_pipeline(intrinsic_model, query_image, device=device)
 
-    albedo = view(result['gry_alb'])
-    albedo_image = Image.fromarray((albedo * 255).astype('uint8'))
-    
-    return albedo_image
+    return view(result['gry_alb'])

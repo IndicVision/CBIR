@@ -7,21 +7,21 @@ from pathlib import Path
 from PIL import Image
 
 def find_caption_for_query_image(
-        query_image_path, 
+        query_image, 
         model, 
         preprocess, 
         device,
         csv_path="CAPTIONS.csv", 
     ):
     '''
-    query_image_path: path to the query image
+    query_image: PIL Image
     csv_path: path to the CSV file containing image captions
     model, preprocess: clip.load("ViT-B/32", device=device, jit=False)
     device: 'cuda' if torch.cuda.is_available() else 'cpu'
     '''
     df = pd.read_csv(csv_path)
 
-    query_image = preprocess(Image.open(query_image_path)).unsqueeze(0).to(device)
+    query_image = preprocess(query_image).unsqueeze(0).to(device)
     with torch.no_grad():
         query_image_features = model.encode_image(query_image)
 
@@ -71,6 +71,4 @@ def rerank_images_by_caption(
         similarity = torch.cosine_similarity(image_features, caption_features)
         scores[image_path] = similarity.item()
 
-    ranked_images = sorted(scores.keys(), key=lambda x: -scores[x])
-
-    return ranked_images
+    return sorted(scores.keys(), key=lambda x: -scores[x])
