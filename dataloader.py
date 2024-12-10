@@ -36,7 +36,7 @@ def get_artist_name(filename):
     return an
     
 def get_vdb_response(client, collection_name):
-    ids_to_fetch = list(range(1, 1000000))
+    ids_to_fetch = list(range(0, 1000000))
     return client.retrieve(
         collection_name=collection_name,
         ids=ids_to_fetch,
